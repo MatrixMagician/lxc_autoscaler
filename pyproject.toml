@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "LXC Autoscaler Team", email = "support@example.com"},
+    {name = "Oliver H", email = "support@example.com"},
 ]
 keywords = ["proxmox", "lxc", "autoscaler", "containers", "virtualization", "monitoring"]
 classifiers = [
@@ -56,10 +56,10 @@ docs = [
 lxc-autoscaler = "lxc_autoscaler.core.daemon:main"
 
 [project.urls]
-Homepage = "https://github.com/example/lxc-autoscaler"
-Repository = "https://github.com/example/lxc-autoscaler"
+Homepage = "https://github.com/MatrixMagician/lxc-autoscaler"
+Repository = "https://github.com/MatrixMagician/lxc-autoscaler"
 Documentation = "https://lxc-autoscaler.readthedocs.io/"
-"Bug Tracker" = "https://github.com/example/lxc-autoscaler/issues"
+"Bug Tracker" = "https://github.com/MatrixMagician/lxc-autoscaler/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
