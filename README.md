@@ -13,16 +13,16 @@ A production-ready Python service that automatically scales LXC container resour
 
 ## Requirements
 
-- **Proxmox VE**: 6.0 or later
+- **Proxmox VE**: 8.4.6 or later
 - **Python**: 3.8 or later
-- **Operating System**: Linux (tested on Debian/Ubuntu and RHEL/CentOS)
+- **Operating System**: Debian Linux
 - **Permissions**: Root access for system service installation
 
 ## Quick Start
 
 ### 1. Installation
 
-Clone the repository and run the installation script:
+Clone the repository and run the installation script on the Proxmox host:
 
 ```bash
 git clone https://github.com/example/lxc-autoscaler.git
