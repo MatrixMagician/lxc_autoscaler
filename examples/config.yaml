@@ -1,0 +1,154 @@
+# LXC Autoscaler Configuration
+# This is the main configuration file for the LXC Autoscaler service
+
+# Proxmox VE connection configuration
+proxmox:
+  # Proxmox host and connection details
+  host: "192.168.1.100"
+  port: 8006
+  user: "root@pam"
+  
+  # Authentication - use either password or token authentication
+  # Password authentication (less secure)
+  password: "${PROXMOX_PASSWORD}"
+  
+  # Token authentication (recommended)
+  # token_name: "autoscaler-token"
+  # token_value: "${PROXMOX_TOKEN}"
+  
+  # SSL verification
+  verify_ssl: true
+  
+  # Connection timeout in seconds
+  timeout: 30
+
+# Global service configuration
+global:
+  # How often to check container metrics (seconds)
+  monitoring_interval: 60
+  
+  # Logging configuration
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_file: "/var/log/lxc-autoscaler.log"
+  
+  # Process management
+  pid_file: "/var/run/lxc-autoscaler.pid"
+  
+  # Dry run mode - if true, no actual scaling operations will be performed
+  dry_run: false
+  
+  # Notification settings (optional)
+  enable_notifications: false
+  notification_webhook: null
+
+# Safety and resource protection settings
+safety:
+  # Maximum number of concurrent scaling operations
+  max_concurrent_operations: 3
+  
+  # Host protection thresholds - scaling will be disabled if exceeded
+  max_cpu_usage_threshold: 95.0
+  max_memory_usage_threshold: 95.0
+  
+  # Emergency threshold for immediate scale-down
+  emergency_scale_down_threshold: 98.0
+  
+  # How often to check host resource usage (seconds)
+  resource_check_interval: 30
+  
+  # Enable host protection mechanisms
+  enable_host_protection: true
+
+# Default scaling thresholds (can be overridden per container)
+default_thresholds:
+  # CPU thresholds (percentage)
+  cpu_scale_up: 80.0      # Scale up when CPU usage exceeds this
+  cpu_scale_down: 30.0    # Scale down when CPU usage falls below this
+  
+  # Memory thresholds (percentage)
+  memory_scale_up: 85.0   # Scale up when memory usage exceeds this  
+  memory_scale_down: 40.0 # Scale down when memory usage falls below this
+
+# Default resource limits (can be overridden per container)
+default_limits:
+  # CPU limits
+  min_cpu_cores: 1        # Minimum CPU cores
+  max_cpu_cores: 8        # Maximum CPU cores
+  cpu_step: 1             # CPU cores to add/remove per scaling operation
+  
+  # Memory limits (MB)
+  min_memory_mb: 512      # Minimum memory in MB
+  max_memory_mb: 8192     # Maximum memory in MB (8GB)
+  memory_step_mb: 512     # Memory to add/remove per scaling operation (MB)
+
+# Container-specific configurations
+containers:
+  # Example web server container
+  - vmid: 101
+    enabled: true
+    
+    # Container-specific thresholds (optional)
+    thresholds:
+      cpu_scale_up: 75.0
+      cpu_scale_down: 25.0
+      memory_scale_up: 80.0
+      memory_scale_down: 35.0
+    
+    # Container-specific limits (optional)
+    limits:
+      min_cpu_cores: 1
+      max_cpu_cores: 4
+      min_memory_mb: 1024
+      max_memory_mb: 4096
+      memory_step_mb: 512
+    
+    # Cooldown period after scaling (seconds)
+    cooldown_seconds: 300
+    
+    # Number of evaluation periods to average before scaling
+    evaluation_periods: 3
+  
+  # Example database container with more conservative settings
+  - vmid: 102
+    enabled: true
+    
+    thresholds:
+      cpu_scale_up: 70.0
+      cpu_scale_down: 20.0
+      memory_scale_up: 75.0
+      memory_scale_down: 30.0
+    
+    limits:
+      min_cpu_cores: 2
+      max_cpu_cores: 8
+      min_memory_mb: 2048
+      max_memory_mb: 16384
+      memory_step_mb: 1024
+    
+    cooldown_seconds: 600  # Longer cooldown for database
+    evaluation_periods: 5   # More evaluation periods for stability
+  
+  # Example development container (disabled by default)
+  - vmid: 103
+    enabled: false
+    
+    # Uses all default settings when enabled
+    cooldown_seconds: 180   # Shorter cooldown for development
+    evaluation_periods: 2
+
+# Additional configuration examples:
+
+# For production environments, consider:
+# - Longer cooldown periods (600+ seconds)
+# - More evaluation periods (5+)
+# - Conservative thresholds
+# - Enable host protection
+# - Use token authentication
+# - Enable logging and monitoring
+
+# For development environments, consider:
+# - Shorter cooldown periods (180 seconds)
+# - Fewer evaluation periods (2-3)
+# - More aggressive thresholds
+# - Disable host protection for testing
+# - Use dry_run mode for testing

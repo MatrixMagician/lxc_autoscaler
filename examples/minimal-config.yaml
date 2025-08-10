@@ -1,0 +1,28 @@
+# Minimal LXC Autoscaler Configuration
+# This is a minimal configuration file with only required settings
+
+# Proxmox VE connection (required)
+proxmox:
+  host: "192.168.1.100"
+  user: "root@pam"
+  password: "your-password-here"
+
+# Containers to monitor (required)
+containers:
+  - vmid: 101
+    enabled: true
+  
+  - vmid: 102
+    enabled: true
+
+# All other settings will use defaults:
+# - monitoring_interval: 60 seconds
+# - log_level: INFO
+# - CPU scale-up threshold: 80%
+# - CPU scale-down threshold: 30%
+# - Memory scale-up threshold: 85%
+# - Memory scale-down threshold: 40%
+# - Min CPU: 1 core, Max CPU: 8 cores
+# - Min Memory: 512MB, Max Memory: 8192MB
+# - Cooldown period: 300 seconds
+# - Evaluation periods: 3

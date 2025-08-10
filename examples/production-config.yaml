@@ -1,0 +1,167 @@
+# Production LXC Autoscaler Configuration
+# This configuration is optimized for production environments with
+# conservative settings and comprehensive safety mechanisms
+
+proxmox:
+  host: "proxmox.company.com"
+  port: 8006
+  user: "autoscaler@pve"
+  
+  # Use token authentication for better security
+  token_name: "autoscaler-prod"
+  token_value: "${PROXMOX_TOKEN}"
+  
+  verify_ssl: true
+  timeout: 30
+
+global:
+  # Check metrics every 2 minutes for production stability
+  monitoring_interval: 120
+  
+  log_level: "INFO"
+  log_file: "/var/log/lxc-autoscaler.log"
+  pid_file: "/var/run/lxc-autoscaler.pid"
+  
+  # Never enable dry_run in production
+  dry_run: false
+  
+  # Enable notifications for production
+  enable_notifications: true
+  notification_webhook: "${WEBHOOK_URL}"
+
+safety:
+  # Conservative concurrent operations limit
+  max_concurrent_operations: 2
+  
+  # Strict host protection thresholds
+  max_cpu_usage_threshold: 90.0
+  max_memory_usage_threshold: 90.0
+  emergency_scale_down_threshold: 95.0
+  
+  # Check host resources every minute
+  resource_check_interval: 60
+  
+  # Always enable host protection in production
+  enable_host_protection: true
+
+# Conservative default thresholds
+default_thresholds:
+  # Higher thresholds to avoid unnecessary scaling
+  cpu_scale_up: 85.0
+  cpu_scale_down: 25.0
+  memory_scale_up: 90.0
+  memory_scale_down: 35.0
+
+# Conservative default limits
+default_limits:
+  min_cpu_cores: 2        # Production minimum
+  max_cpu_cores: 16       # Higher maximum for production
+  cpu_step: 1             # Small incremental changes
+  
+  min_memory_mb: 1024     # Production minimum
+  max_memory_mb: 32768    # 32GB maximum
+  memory_step_mb: 1024    # 1GB incremental changes
+
+containers:
+  # Production web servers
+  - vmid: 201
+    enabled: true
+    
+    thresholds:
+      cpu_scale_up: 80.0
+      cpu_scale_down: 20.0
+      memory_scale_up: 85.0
+      memory_scale_down: 30.0
+    
+    limits:
+      min_cpu_cores: 2
+      max_cpu_cores: 8
+      min_memory_mb: 2048
+      max_memory_mb: 16384
+      memory_step_mb: 1024
+    
+    # Long cooldown for production stability
+    cooldown_seconds: 900   # 15 minutes
+    evaluation_periods: 5   # 5 periods for stability
+  
+  - vmid: 202
+    enabled: true
+    
+    thresholds:
+      cpu_scale_up: 80.0
+      cpu_scale_down: 20.0
+      memory_scale_up: 85.0
+      memory_scale_down: 30.0
+    
+    limits:
+      min_cpu_cores: 2
+      max_cpu_cores: 8
+      min_memory_mb: 2048
+      max_memory_mb: 16384
+      memory_step_mb: 1024
+    
+    cooldown_seconds: 900
+    evaluation_periods: 5
+  
+  # Production database servers
+  - vmid: 301
+    enabled: true
+    
+    # Very conservative thresholds for database
+    thresholds:
+      cpu_scale_up: 75.0
+      cpu_scale_down: 15.0
+      memory_scale_up: 80.0
+      memory_scale_down: 25.0
+    
+    limits:
+      min_cpu_cores: 4      # Database minimum
+      max_cpu_cores: 16     # Higher maximum for database
+      min_memory_mb: 4096   # 4GB minimum for database
+      max_memory_mb: 65536  # 64GB maximum
+      memory_step_mb: 2048  # Larger memory increments
+    
+    # Very long cooldown for database stability
+    cooldown_seconds: 1800  # 30 minutes
+    evaluation_periods: 7   # More evaluation periods
+  
+  # Production cache servers
+  - vmid: 401
+    enabled: true
+    
+    # Memory-focused scaling for cache
+    thresholds:
+      cpu_scale_up: 90.0    # High CPU threshold (not CPU-intensive)
+      cpu_scale_down: 20.0
+      memory_scale_up: 75.0  # Lower memory threshold (memory-intensive)
+      memory_scale_down: 30.0
+    
+    limits:
+      min_cpu_cores: 2
+      max_cpu_cores: 8
+      min_memory_mb: 8192   # High memory minimum
+      max_memory_mb: 32768  # High memory maximum
+      memory_step_mb: 4096  # Large memory increments
+    
+    cooldown_seconds: 600   # 10 minutes
+    evaluation_periods: 4
+  
+  # Application servers
+  - vmid: 501
+    enabled: true
+    
+    thresholds:
+      cpu_scale_up: 85.0
+      cpu_scale_down: 25.0
+      memory_scale_up: 87.0
+      memory_scale_down: 32.0
+    
+    limits:
+      min_cpu_cores: 2
+      max_cpu_cores: 12
+      min_memory_mb: 2048
+      max_memory_mb: 24576  # 24GB
+      memory_step_mb: 1024
+    
+    cooldown_seconds: 720   # 12 minutes
+    evaluation_periods: 4

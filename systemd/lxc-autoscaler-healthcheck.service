@@ -1,0 +1,27 @@
+[Unit]
+Description=LXC Autoscaler Health Check
+After=lxc-autoscaler.service
+Requisite=lxc-autoscaler.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/bin/lxc-autoscaler-healthcheck
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lxc-autoscaler-healthcheck
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/lxc-autoscaler
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
