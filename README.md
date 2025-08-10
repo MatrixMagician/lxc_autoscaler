@@ -25,7 +25,7 @@ A production-ready Python service that automatically scales LXC container resour
 Clone the repository and run the installation script on the Proxmox host:
 
 ```bash
-git clone https://github.com/example/lxc-autoscaler.git
+git clone https://github.com/MatrixMagician/lxc-autoscaler.git
 cd lxc-autoscaler
 sudo ./scripts/install.sh
 ```
