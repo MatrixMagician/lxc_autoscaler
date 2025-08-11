@@ -68,10 +68,26 @@ install_dependencies() {
 
 # Function to install Python packages
 install_python_packages() {
-    print_status "Installing Python packages..."
+    print_status "Checking Python packages..."
     
-    pip3 install --upgrade pip
-    pip3 install -r requirements.txt
+    # Check if pipx installation exists
+    if command -v lxc-autoscaler &> /dev/null; then
+        print_status "Package already installed via pipx, skipping pip installation"
+        return
+    fi
+    
+    # Try pip installation with pipx-style fallback
+    if ! pip3 install --upgrade pip 2>/dev/null; then
+        print_warning "pip3 install failed (externally-managed-environment)"
+        print_warning "Please install using: pipx install ."
+        exit 1
+    fi
+    
+    if ! pip3 install -r requirements.txt 2>/dev/null; then
+        print_warning "pip3 install failed (externally-managed-environment)"
+        print_warning "Please install using: pipx install ."
+        exit 1
+    fi
     
     print_status "Python packages installed"
 }
