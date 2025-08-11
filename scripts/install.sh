@@ -118,8 +118,12 @@ create_directories() {
 install_package() {
     print_status "Installing LXC Autoscaler package..."
     
+    # Get script directory and repository root
+    SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+    REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+    
     # Copy package files
-    cp -r lxc_autoscaler/* "$INSTALL_DIR/"
+    cp -r "$REPO_ROOT/lxc_autoscaler"/* "$INSTALL_DIR/"
     
     # Set ownership and permissions
     chown -R root:root "$INSTALL_DIR"
