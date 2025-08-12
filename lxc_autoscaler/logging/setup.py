@@ -2,6 +2,7 @@
 
 import logging
 import logging.handlers
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -99,6 +100,27 @@ class StructuredFormatter(logging.Formatter):
         return ' '.join(parts)
 
 
+def _is_running_in_container() -> bool:
+    """Detect if running inside a container.
+    
+    Returns:
+        True if running in a container environment.
+    """
+    # Check for container environment indicators
+    container_indicators = [
+        # Docker
+        os.path.exists('/.dockerenv'),
+        # Kubernetes
+        bool(os.getenv('KUBERNETES_SERVICE_HOST')),
+        # General container environment variable
+        bool(os.getenv('CONTAINER')),
+        # LXC Autoscaler specific variable
+        bool(os.getenv('LXC_AUTOSCALER_CONTAINER')),
+    ]
+    
+    return any(container_indicators)
+
+
 def setup_logging(config: GlobalConfig, service_name: str = "lxc-autoscaler") -> None:
     """Setup logging configuration.
     
@@ -108,6 +130,9 @@ def setup_logging(config: GlobalConfig, service_name: str = "lxc-autoscaler") ->
     """
     # Get log level
     log_level = getattr(logging, config.log_level.upper(), logging.INFO)
+    
+    # Detect container environment
+    is_container = _is_running_in_container()
     
     # Create root logger
     root_logger = logging.getLogger()
@@ -120,10 +145,17 @@ def setup_logging(config: GlobalConfig, service_name: str = "lxc-autoscaler") ->
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
     
-    console_formatter = ColoredFormatter(
-        fmt='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    # Use simpler format in containers for better log aggregation
+    if is_container:
+        console_formatter = logging.Formatter(
+            fmt='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+    else:
+        console_formatter = ColoredFormatter(
+            fmt='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
     console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
     
@@ -163,6 +195,10 @@ def setup_logging(config: GlobalConfig, service_name: str = "lxc-autoscaler") ->
     # Log initial setup information
     logging.info(f"{service_name} logging initialized")
     logging.info(f"Log level: {config.log_level}")
+    if is_container:
+        logging.info("Container environment detected - using plain console formatting")
+    if config.log_file:
+        logging.info(f"File logging enabled: {config.log_file}")
     logging.debug("Debug logging enabled")
 
 

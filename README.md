@@ -1,50 +1,57 @@
 # LXC Autoscaler for Proxmox VE
 
-A production-ready Python service that automatically scales LXC container resources (CPU and memory) based on workload metrics in Proxmox Virtual Environment.
+A production-ready containerized service that automatically scales LXC container resources (CPU and memory) based on workload metrics in Proxmox Virtual Environment.
 
 ## Features
 
 - **Automatic Resource Scaling**: Dynamically adjust CPU cores and memory allocation based on container workload
 - **Safety Mechanisms**: Comprehensive safety checks to prevent resource overcommitment and system instability
 - **Flexible Configuration**: Per-container and global configuration with YAML support
-- **Production Ready**: Systemd integration, structured logging, error handling, and monitoring
+- **Production Ready**: Docker containerization, structured logging, error handling, and monitoring
 - **Async Architecture**: High-performance async/await implementation for efficient API operations
 - **Comprehensive Testing**: Full test suite with pytest and type checking with mypy
+- **Health Monitoring**: Built-in health checks and monitoring capabilities
 
 ## Requirements
 
 - **Proxmox VE**: 8.4.6 or later
-- **Python**: 3.8 or later
-- **Operating System**: Debian Linux
-- **Permissions**: Root access for system service installation
+- **Docker**: 20.10 or later
+- **Docker Compose**: 2.0 or later (optional but recommended)
+- **Operating System**: Any Docker-compatible OS (Linux, macOS, Windows)
 
 ## Quick Start
 
-### 1. Installation
-
-Clone the repository and run the installation script on the Proxmox host:
+### 1. Clone and Build
 
 ```bash
 git clone https://github.com/MatrixMagician/lxc-autoscaler.git
 cd lxc-autoscaler
-sudo ./scripts/install.sh
+
+# Build the Docker image
+make build
+
+# Or using Docker directly
+docker build -t lxc_autoscaler .
 ```
 
-### 2. Configuration
-
-Edit the configuration file:
+### 2. Initialize Configuration
 
 ```bash
-sudo nano /etc/lxc-autoscaler/config.yaml
+# Copy example configuration
+cp examples/config.yaml config/config.yaml
+
+# Edit configuration
+nano config/config.yaml
 ```
 
 Minimal configuration:
 
 ```yaml
 proxmox:
-  host: "192.168.1.100"
+  host: "192.168.2.90"
   user: "root@pam"
-  password: "your-password"
+  token_name: "lxc_autoscaler"
+  token_value: "ac1e95ab-8c07-4c7a-bd46-6788786c97f3"
 
 containers:
   - vmid: 101
@@ -53,30 +60,84 @@ containers:
     enabled: true
 ```
 
-### 3. Start the Service
+### 3. Deploy and Run
 
 ```bash
 # Validate configuration
-sudo lxc-autoscaler --validate-config
+make validate-config
 
-# Start the service
-sudo systemctl start lxc-autoscaler
+# Start with Docker Compose (recommended)
+make up
 
-# Enable auto-start
-sudo systemctl enable lxc-autoscaler
+# Or run directly
+make run
 ```
 
 ### 4. Monitor
 
 ```bash
-# Check service status
-sudo systemctl status lxc-autoscaler
+# Check container status
+make status
 
 # View logs
-sudo journalctl -u lxc-autoscaler -f
+make logs
 
-# Get detailed status
-sudo lxc-autoscaler-status
+# Follow logs in real-time
+make logs-follow
+```
+
+## Deployment Methods
+
+### Docker Compose (Recommended)
+
+```bash
+# Start the service
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the service
+docker-compose down
+```
+
+### Manual Docker Run
+
+```bash
+# Basic run
+docker run -d \
+  --name lxc_autoscaler \
+  -v $(pwd)/config:/app/config \
+  -v $(pwd)/logs:/app/logs \
+  lxc_autoscaler
+
+# With environment variables
+docker run -d \
+  --name lxc_autoscaler \
+  -v $(pwd)/config:/app/config \
+  -e PROXMOX_HOST="192.168.2.90" \
+  -e PROXMOX_USER="root@pam" \
+  -e PROXMOX_TOKEN_NAME="lxc_autoscaler" \
+  -e PROXMOX_TOKEN_VALUE="ac1e95ab-8c07-4c7a-bd46-6788786c97f3" \
+  lxc_autoscaler
+```
+
+### Environment Variables
+
+```bash
+# Proxmox connection
+PROXMOX_HOST=192.168.2.90
+PROXMOX_PORT=8006
+PROXMOX_USER=root@pam
+PROXMOX_TOKEN_NAME=lxc_autoscaler
+PROXMOX_TOKEN_VALUE=your-token-value
+
+# Logging
+LOG_LEVEL=INFO
+LOG_FILE=/app/logs/lxc_autoscaler.log
+
+# Configuration
+CONFIG_FILE=/app/config/config.yaml
 ```
 
 ## Configuration
@@ -85,16 +146,16 @@ sudo lxc-autoscaler-status
 
 ```yaml
 proxmox:
-  host: "proxmox.example.com"
+  host: "192.168.2.90"
   port: 8006
   user: "root@pam"
   
-  # Password authentication
-  password: "secret"
+  # Token authentication (recommended)
+  token_name: "lxc_autoscaler"
+  token_value: "ac1e95ab-8c07-4c7a-bd46-6788786c97f3"
   
-  # OR token authentication (recommended)
-  token_name: "autoscaler-token"
-  token_value: "secret-token-value"
+  # OR password authentication
+  password: "your-password"
   
   verify_ssl: true
   timeout: 30
@@ -127,9 +188,14 @@ containers:
     evaluation_periods: 3     # Average over 3 periods
 ```
 
-### Safety Configuration
+### Global Settings
 
 ```yaml
+global:
+  monitoring_interval: 60     # Check metrics every 60 seconds
+  log_level: "INFO"
+  enable_dry_run: false
+
 safety:
   max_concurrent_operations: 3
   max_cpu_usage_threshold: 95.0
@@ -176,50 +242,69 @@ safety:
 
 ## Commands
 
-### Service Management
+### Available Make Commands
 
 ```bash
-# Start/stop service
-sudo systemctl start lxc-autoscaler
-sudo systemctl stop lxc-autoscaler
+# Build and deployment
+make build          # Build Docker image
+make up             # Start with Docker Compose
+make down           # Stop Docker Compose
+make restart        # Restart the service
 
-# Check status
-sudo systemctl status lxc-autoscaler
-sudo lxc-autoscaler-status
+# Running and testing
+make run            # Run container directly
+make run-dev        # Run in development mode
+make validate-config # Validate configuration
+make dry-run        # Test run without making changes
 
-# Reload configuration
-sudo systemctl reload lxc-autoscaler
-# OR
-sudo kill -HUP $(cat /var/run/lxc-autoscaler.pid)
+# Monitoring and debugging
+make status         # Check container status
+make logs           # View logs
+make logs-follow    # Follow logs in real-time
+make shell          # Open shell in container
+make health-check   # Run health check
+
+# Development
+make test           # Run tests
+make lint           # Run linting
+make format         # Format code
+make type-check     # Run type checking
+
+# Cleanup
+make clean          # Remove containers and images
+make clean-all      # Remove everything including volumes
+```
+
+### Container Management
+
+```bash
+# Check container status
+docker ps | grep lxc_autoscaler
+
+# View real-time logs
+docker logs -f lxc_autoscaler
+
+# Execute commands in container
+docker exec -it lxc_autoscaler lxc-autoscaler --help
+
+# Restart container
+docker restart lxc_autoscaler
+
+# Stop container
+docker stop lxc_autoscaler
 ```
 
 ### Configuration Management
 
 ```bash
 # Validate configuration
-sudo lxc-autoscaler --validate-config
+docker exec lxc_autoscaler lxc-autoscaler --validate-config
 
 # Test with dry run
-sudo lxc-autoscaler --dry-run
+docker exec lxc_autoscaler lxc-autoscaler --dry-run
 
-# Specify custom config file
-sudo lxc-autoscaler --config /path/to/config.yaml
-```
-
-### Monitoring
-
-```bash
-# View real-time logs
-sudo journalctl -u lxc-autoscaler -f
-
-# View recent logs
-sudo journalctl -u lxc-autoscaler --lines=100
-
-# Get detailed status
-sudo lxc-autoscaler-status
-
-# Health check
-sudo lxc-autoscaler-healthcheck
+# Check container health
+docker exec lxc_autoscaler lxc-autoscaler --health-check
 ```
 
 ## Development
@@ -231,80 +316,215 @@ sudo lxc-autoscaler-healthcheck
 git clone https://github.com/example/lxc-autoscaler.git
 cd lxc-autoscaler
 
-# Install dependencies
-pip install -r requirements.txt
+# Build development image
+make build
 
-# Install in development mode
-pip install -e .
+# Run development container with code mounted
+make run-dev
 ```
 
 ### Code Quality
 
 ```bash
-# Linting
-ruff check .
+# Run all quality checks
+make lint           # Ruff linting
+make format         # Ruff formatting  
+make type-check     # MyPy type checking
+make test           # Pytest testing
 
-# Type checking
-mypy .
-
-# Formatting
-ruff format .
-
-# Testing
-pytest
-pytest --cov=lxc_autoscaler
+# Individual checks
+docker run --rm -v $(pwd):/app lxc_autoscaler ruff check .
+docker run --rm -v $(pwd):/app lxc_autoscaler mypy .
+docker run --rm -v $(pwd):/app lxc_autoscaler pytest
 ```
 
 ### Running Tests
 
 ```bash
 # All tests
-pytest
+make test
 
 # Specific test file
-pytest tests/test_config.py
+docker run --rm -v $(pwd):/app lxc_autoscaler pytest tests/test_config.py
 
 # With coverage
-pytest --cov=lxc_autoscaler --cov-report=html
+docker run --rm -v $(pwd):/app lxc_autoscaler pytest --cov=lxc_autoscaler --cov-report=html
 
-# Async tests
+# Interactive testing
+make run-dev
 pytest tests/test_scaling.py -v
+```
+
+### Development Workflow
+
+```bash
+# 1. Make code changes
+# 2. Test changes
+make test
+
+# 3. Check code quality
+make lint
+make type-check
+
+# 4. Format code
+make format
+
+# 5. Build updated image
+make build
+
+# 6. Test in container
+make validate-config
+make dry-run
+```
+
+## Production Deployment
+
+### Docker Swarm
+
+```yaml
+# docker-stack.yml
+version: '3.8'
+services:
+  lxc-autoscaler:
+    image: lxc_autoscaler:latest
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+    environment:
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "lxc-autoscaler", "--health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### Kubernetes Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lxc-autoscaler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lxc-autoscaler
+  template:
+    metadata:
+      labels:
+        app: lxc-autoscaler
+    spec:
+      containers:
+      - name: lxc-autoscaler
+        image: lxc_autoscaler:latest
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: config
+        configMap:
+          name: lxc-autoscaler-config
+      - name: logs
+        emptyDir: {}
+```
+
+### Backup and Recovery
+
+```bash
+# Backup configuration
+docker cp lxc_autoscaler:/app/config ./backup/config-$(date +%Y%m%d)
+
+# Backup logs
+docker cp lxc_autoscaler:/app/logs ./backup/logs-$(date +%Y%m%d)
+
+# Restore configuration
+docker cp ./backup/config-20240101 lxc_autoscaler:/app/config
+docker restart lxc_autoscaler
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Service won't start:**
-- Check configuration: `lxc-autoscaler --validate-config`
-- Check logs: `journalctl -u lxc-autoscaler -f`
-- Verify Proxmox connectivity
-- Check permissions on log/pid directories
+**Container won't start:**
+```bash
+# Check configuration
+make validate-config
+
+# Check container logs
+make logs
+
+# Verify Proxmox connectivity
+docker exec lxc_autoscaler ping 192.168.2.90
+
+# Check container health
+make health-check
+```
 
 **No scaling operations:**
-- Verify containers are running
-- Check that thresholds are appropriate
-- Ensure containers are enabled in config
-- Check cooldown periods
-- Review safety constraints
+```bash
+# Check container status
+make status
+
+# Enable debug logging
+docker exec lxc_autoscaler sed -i 's/INFO/DEBUG/' /app/config/config.yaml
+docker restart lxc_autoscaler
+
+# Monitor real-time logs
+make logs-follow
+```
 
 **Authentication errors:**
-- Verify Proxmox credentials
-- Check user permissions in Proxmox
-- Test API connectivity manually
-- Verify SSL settings
+```bash
+# Test Proxmox API connectivity
+docker exec -it lxc_autoscaler bash
+curl -k https://192.168.2.90:8006/api2/json/version
+
+# Verify token permissions
+docker exec lxc_autoscaler lxc-autoscaler --validate-config --verbose
+```
+
+### Container Debugging
+
+```bash
+# Enter container shell
+make shell
+
+# Check container processes
+docker exec lxc_autoscaler ps aux
+
+# View container environment
+docker exec lxc_autoscaler env
+
+# Check file permissions
+docker exec lxc_autoscaler ls -la /app/config/
+
+# Monitor resource usage
+docker stats lxc_autoscaler
+```
 
 ### Log Analysis
 
 ```bash
 # Filter by log level
-journalctl -u lxc-autoscaler | grep ERROR
+make logs | grep ERROR
 
 # Show only scaling operations
-journalctl -u lxc-autoscaler | grep "scaling"
+make logs | grep "scaling"
 
 # Monitor specific container
-journalctl -u lxc-autoscaler | grep "Container 101"
+make logs | grep "Container 101"
+
+# Export logs for analysis
+docker logs lxc_autoscaler > lxc_autoscaler.log
 ```
 
 ### Performance Tuning
@@ -328,8 +548,9 @@ journalctl -u lxc-autoscaler | grep "Container 101"
 - **Use Token Authentication**: Create dedicated API tokens instead of passwords
 - **Limit User Permissions**: Create dedicated user with minimal required permissions
 - **Enable SSL Verification**: Always verify SSL certificates in production
-- **Secure Configuration**: Protect configuration files with appropriate permissions
-- **Regular Updates**: Keep the service and dependencies updated
+- **Secure Configuration**: Use Docker secrets or encrypted volumes for sensitive data
+- **Regular Updates**: Keep container images and dependencies updated
+- **Network Isolation**: Use Docker networks to isolate the autoscaler
 
 ### Proxmox Permissions
 
@@ -338,16 +559,85 @@ Required permissions for the autoscaler user:
 - `VM.Config` - Modify container configuration
 - `Sys.Audit` - Read node information
 
-### File Permissions
+### Container Security
 
 ```bash
-# Configuration files
-sudo chmod 640 /etc/lxc-autoscaler/config.yaml
-sudo chown root:root /etc/lxc-autoscaler/config.yaml
+# Run with non-root user (already configured in Dockerfile)
+docker run --user 1000:1000 lxc_autoscaler
 
-# Log files
-sudo chmod 644 /var/log/lxc-autoscaler.log
-sudo chown root:root /var/log/lxc-autoscaler.log
+# Use read-only filesystem
+docker run --read-only -v /tmp lxc_autoscaler
+
+# Limit container resources
+docker run --memory=256m --cpus=0.5 lxc_autoscaler
+
+# Use Docker secrets for sensitive data
+echo "your-token" | docker secret create proxmox_token -
+```
+
+## Monitoring and Observability
+
+### Health Checks
+
+```bash
+# Built-in health check
+make health-check
+
+# Custom health monitoring
+docker exec lxc_autoscaler lxc-autoscaler --health-check --format json
+```
+
+### Metrics Integration
+
+The service can integrate with monitoring solutions:
+- **Prometheus**: Export metrics endpoint
+- **Grafana**: Dashboard templates available
+- **ELK Stack**: Structured JSON logging
+- **Datadog**: Custom metrics and alerts
+
+### Log Management
+
+```bash
+# Configure log rotation
+docker run -v $(pwd)/logs:/app/logs \
+  --log-driver json-file \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
+  lxc_autoscaler
+
+# Send logs to external system
+docker run --log-driver syslog \
+  --log-opt syslog-address=tcp://log-server:514 \
+  lxc_autoscaler
+```
+
+## API Reference
+
+### Configuration File Schema
+
+The service uses YAML configuration files with the following structure:
+
+- `/home/oliverh/repo/lxc_autoscaler/examples/config.yaml` - Full example
+- `/home/oliverh/repo/lxc_autoscaler/examples/minimal-config.yaml` - Minimal example
+- `/home/oliverh/repo/lxc_autoscaler/examples/production-config.yaml` - Production example
+
+### Command Line Interface
+
+```bash
+# Available commands
+docker exec lxc_autoscaler lxc-autoscaler --help
+
+# Configuration validation
+docker exec lxc_autoscaler lxc-autoscaler --validate-config
+
+# Dry run mode
+docker exec lxc_autoscaler lxc-autoscaler --dry-run
+
+# Health check
+docker exec lxc_autoscaler lxc-autoscaler --health-check
+
+# Custom config file
+docker exec lxc_autoscaler lxc-autoscaler --config /app/config/custom.yaml
 ```
 
 ## Contributing
@@ -355,8 +645,23 @@ sudo chown root:root /var/log/lxc-autoscaler.log
 1. Fork the repository
 2. Create a feature branch
 3. Make changes with tests
-4. Run code quality checks
-5. Submit a pull request
+4. Run code quality checks: `make lint && make test`
+5. Build and test Docker image: `make build && make test`
+6. Submit a pull request
+
+### Project Structure
+
+```
+/home/oliverh/repo/lxc_autoscaler/
+├── lxc_autoscaler/          # Main Python package
+├── examples/                # Configuration examples
+├── tests/                   # Test suite
+├── Dockerfile              # Container definition
+├── docker-compose.yml      # Orchestration
+├── pyproject.toml         # Python project configuration
+├── Makefile               # Development commands
+└── README.md              # This file
+```
 
 ## License
 
@@ -365,7 +670,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 - **Issues**: Submit issues on GitHub
-- **Documentation**: See the docs/ directory
+- **Documentation**: See `DOCKER.md` for Docker-specific documentation
 - **Discussions**: Use GitHub Discussions for questions
 
 ## Changelog

@@ -1,0 +1,95 @@
+# Docker build context exclusions
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov
+.tox
+.nox
+.venv
+venv
+env
+ENV
+env.bak
+venv.bak
+pip-wheel-metadata
+
+# Documentation
+*.md
+docs/
+*.rst
+*.txt
+LICENSE
+CHANGELOG*
+HISTORY*
+
+# IDE and editors
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+wheels/
+
+# Testing
+tests/
+.pytest_cache/
+.coverage
+coverage.xml
+*.cover
+.hypothesis
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+Jenkinsfile
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+logs/
+run/
+data/
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Configuration examples (will be copied explicitly)
+# examples/ - we want to include this
+
+# Keep these files
+!pyproject.toml
+!setup.py
+!requirements.txt
+!lxc_autoscaler/
+!examples/

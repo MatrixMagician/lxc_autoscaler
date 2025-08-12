@@ -88,8 +88,11 @@ class AutoscalerDaemon:
             )
             logger.info("Scaling engine initialized")
             
-            # Create PID file
-            await self._create_pid_file()
+            # Create PID file if not running in container
+            if not self._is_running_in_container():
+                await self._create_pid_file()
+            else:
+                logger.debug("Running in container, skipping PID file creation")
             
             logger.info("Daemon initialization completed successfully")
             
@@ -179,8 +182,9 @@ class AutoscalerDaemon:
             if self.proxmox_client:
                 await self.proxmox_client.close()
             
-            # Remove PID file
-            await self._remove_pid_file()
+            # Remove PID file if not running in container
+            if not self._is_running_in_container():
+                await self._remove_pid_file()
             
             logger.info("Daemon cleanup completed")
             
@@ -260,6 +264,26 @@ class AutoscalerDaemon:
             
             # Sleep until next health check
             await asyncio.sleep(health_check_interval)
+    
+    def _is_running_in_container(self) -> bool:
+        """Detect if running inside a container.
+        
+        Returns:
+            True if running in a container environment.
+        """
+        # Check for container environment indicators
+        container_indicators = [
+            # Docker
+            os.path.exists('/.dockerenv'),
+            # Kubernetes
+            bool(os.getenv('KUBERNETES_SERVICE_HOST')),
+            # General container environment variable
+            bool(os.getenv('CONTAINER')),
+            # LXC Autoscaler specific variable
+            bool(os.getenv('LXC_AUTOSCALER_CONTAINER')),
+        ]
+        
+        return any(container_indicators)
     
     def _setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
@@ -414,5 +438,10 @@ async def main() -> None:
         sys.exit(1)
 
 
-if __name__ == '__main__':
+def cli_main() -> None:
+    """Synchronous entry point for CLI."""
     asyncio.run(main())
+
+
+if __name__ == '__main__':
+    cli_main()

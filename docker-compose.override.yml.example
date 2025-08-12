@@ -1,0 +1,68 @@
+# Docker Compose Development Override
+# Copy this file to docker-compose.override.yml for development use
+# This file automatically extends docker-compose.yml when running docker-compose
+
+version: '3.8'
+
+services:
+  lxc-autoscaler:
+    # Development-specific configuration
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime  # Use runtime stage for development
+    
+    # Development environment variables
+    environment:
+      # Enable debug logging
+      - LXC_AUTOSCALER_LOG_LEVEL=DEBUG
+      
+      # Enable dry-run mode by default for development
+      - DRY_RUN=true
+      
+      # Development-friendly settings
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    
+    # Volume mounts for development
+    volumes:
+      # Mount source code for development (read-only)
+      - ./:/app/src:ro
+      # Use examples as default config location
+      - ./examples:/app/config:ro
+      # Development logs (not persistent)
+      - /tmp/lxc-autoscaler-dev-logs:/app/logs
+      # Development run directory
+      - /tmp/lxc-autoscaler-dev-run:/app/run
+    
+    # Remove resource limits for development
+    deploy: {}
+    
+    # Development ports (if needed for debugging)
+    # ports:
+    #   - "8080:8080"  # Example debug port
+    
+    # Override command for interactive development
+    # command: ["--dry-run", "--config", "/app/config/config.yaml"]
+    
+    # Interactive development shell (uncomment to use)
+    # entrypoint: ["/usr/bin/tini", "--", "/bin/bash"]
+    # command: ["-c", "echo 'Development container ready. Install with: pip install -e /app/src'; exec /bin/bash"]
+    # stdin_open: true
+    # tty: true
+
+# Development-specific volumes (non-persistent)
+volumes:
+  lxc-autoscaler-dev-logs:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: uid=1001,gid=1001
+  
+  lxc-autoscaler-dev-run:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: uid=1001,gid=1001

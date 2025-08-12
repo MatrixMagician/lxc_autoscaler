@@ -30,6 +30,12 @@ class ConfigManager:
     """Manages configuration loading, validation, and updates."""
     
     DEFAULT_CONFIG_PATHS = [
+        # Container-first paths
+        "/app/config/config.yaml",
+        "/app/config.yaml",
+        # Environment variable path
+        "${LXC_AUTOSCALER_CONFIG_PATH}",
+        # Traditional paths (for backward compatibility)
         "/etc/lxc-autoscaler/config.yaml",
         "/usr/local/etc/lxc-autoscaler/config.yaml",
         "./config.yaml",
@@ -61,17 +67,47 @@ class ConfigManager:
         if config_path:
             paths_to_check.append(config_path)
         
-        paths_to_check.extend(self.DEFAULT_CONFIG_PATHS)
+        # Expand environment variables in default paths
+        for default_path in self.DEFAULT_CONFIG_PATHS:
+            expanded_path = self._expand_environment_variables(default_path)
+            if expanded_path:  # Only add if environment variable resolved to a value
+                paths_to_check.append(expanded_path)
         
         for path_str in paths_to_check:
-            path = Path(path_str)
-            if path.exists() and path.is_file():
-                logger.info(f"Found configuration file: {path}")
-                return path
+            try:
+                path = Path(path_str).resolve()
+                if path.exists() and path.is_file():
+                    logger.info(f"Found configuration file: {path}")
+                    return path
+            except (OSError, ValueError) as e:
+                # Skip invalid paths (e.g., unresolved environment variables)
+                logger.debug(f"Skipping invalid path '{path_str}': {e}")
+                continue
         
         raise ConfigurationError(
             f"No configuration file found. Searched paths: {paths_to_check}"
         )
+    
+    def _expand_environment_variables(self, path_str: str) -> Optional[str]:
+        """Expand environment variables in a path string.
+        
+        Args:
+            path_str: Path string that may contain environment variables.
+            
+        Returns:
+            Expanded path string, or None if environment variable is not set.
+        """
+        if path_str.startswith('${') and path_str.endswith('}'):
+            env_var = path_str[2:-1]
+            default_value = None
+            
+            # Handle ${VAR:default} syntax
+            if ':' in env_var:
+                env_var, default_value = env_var.split(':', 1)
+            
+            return os.getenv(env_var, default_value)
+        else:
+            return path_str
     
     def load_config(self) -> AutoscalerConfig:
         """Load and validate configuration from file.

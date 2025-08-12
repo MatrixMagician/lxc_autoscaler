@@ -33,6 +33,7 @@ dependencies = [
     "aiohttp>=3.8.0",
     "PyYAML>=6.0",
     "aiofiles>=23.0.0",
+    "requests>=2.25.0",
 ]
 
 [project.optional-dependencies]
@@ -53,7 +54,7 @@ docs = [
 ]
 
 [project.scripts]
-lxc-autoscaler = "lxc_autoscaler.core.daemon:main"
+lxc-autoscaler = "lxc_autoscaler.core.daemon:cli_main"
 
 [project.urls]
 Homepage = "https://github.com/MatrixMagician/lxc-autoscaler"

@@ -4,20 +4,20 @@
 # Proxmox VE connection configuration
 proxmox:
   # Proxmox host and connection details
-  host: "192.168.1.100"
+  host: "192.168.2.90"
   port: 8006
   user: "root@pam"
   
   # Authentication - use either password or token authentication
   # Password authentication (less secure)
-  password: "${PROXMOX_PASSWORD}"
+  # password: "${PROXMOX_PASSWORD}"
   
   # Token authentication (recommended)
-  # token_name: "autoscaler-token"
-  # token_value: "${PROXMOX_TOKEN}"
+  token_name: "lxc_autoscaler"
+  token_value: "ac1e95ab-8c07-4c7a-bd46-6788786c97f3"
   
   # SSL verification
-  verify_ssl: true
+  verify_ssl: false
   
   # Connection timeout in seconds
   timeout: 30

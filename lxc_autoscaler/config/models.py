@@ -104,8 +104,8 @@ class GlobalConfig:
     
     monitoring_interval: int = 60
     log_level: str = "INFO"
-    log_file: Optional[str] = "/var/log/lxc-autoscaler.log"
-    pid_file: str = "/var/run/lxc-autoscaler.pid"
+    log_file: Optional[str] = None  # Default to None for container stdout/stderr logging
+    pid_file: str = "/tmp/lxc-autoscaler.pid"  # Use /tmp for containers instead of /var/run
     enable_notifications: bool = False
     notification_webhook: Optional[str] = None
     dry_run: bool = False

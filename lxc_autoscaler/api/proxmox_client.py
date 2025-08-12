@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 from proxmoxer import ProxmoxAPI
-from proxmoxer.backends.https import ProxmoxHTTPSAuth
 
 from ..config.models import ProxmoxConfig
 from .exceptions import (
